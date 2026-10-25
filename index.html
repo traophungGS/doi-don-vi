@@ -52,16 +52,16 @@
             align-items: center;
             margin-bottom: 20px;
         }
-        input[type="number"] {
+        input[type="text"] {
             font-size: 20px;
             padding: 8px 12px;
-            width: 160px;
+            width: 200px;
             text-align: center;
             border: 2px solid #ccc;
             border-radius: 6px;
             outline: none;
         }
-        input[type="number"]:focus {
+        input[type="text"]:focus {
             border-color: #1565c0;
         }
         button {
@@ -99,7 +99,7 @@
 
     <form id="quiz-form" onsubmit="checkAnswer(event)">
         <div class="input-group">
-            <input type="number" id="user-answer" placeholder="Nhập số" required autocomplete="off" autofocus>
+            <input type="text" id="user-answer" placeholder="Nhập số" required autocomplete="off" autofocus oninput="formatInput(this)">
             <span id="target-unit" style="font-size: 20px; font-weight: bold;"></span>
         </div>
         <button type="submit">Kiểm tra</button>
@@ -116,12 +116,27 @@
     let countCorrect = 0;
     let countWrong = 0;
 
+    // Định dạng số tách lớp bằng khoảng trắng
+    function formatNumber(num) {
+        if (num === null || num === undefined || isNaN(num)) return '';
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    }
+
+    // Tự động tách lớp khi người dùng nhập số
+    function formatInput(input) {
+        let rawVal = input.value.replace(/\s+/g, '').replace(/\D/g, '');
+        if (rawVal === '') {
+            input.value = '';
+            return;
+        }
+        input.value = formatNumber(parseInt(rawVal, 10));
+    }
+
     function getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
     function generateQuestion() {
-        // Chọn ngẫu nhiên đơn vị nguồn và đơn vị đích khác nhau
         let fromIdx = getRandomInt(0, 3);
         let toIdx = getRandomInt(0, 3);
         while (fromIdx === toIdx) {
@@ -135,15 +150,12 @@
         let val, ans;
 
         if (ratio >= 1) {
-            // Đổi từ đơn vị lớn sang nhỏ -> Kết quả chắc chắn là số nguyên
-            // Giới hạn giá trị ban đầu sao cho kết quả sau khi nhân không quá 6 chữ số (999,999)
-            let maxVal = Math.floor(999999 / ratio);
-            val = getRandomInt(1, maxVal);
+            // Đổi từ đơn vị LỚN -> NHỎ
+            val = getRandomInt(1, 999999);
             ans = val * ratio;
         } else {
-            // Đổi từ đơn vị nhỏ sang lớn -> Cần đảm bảo chia hết (không ra số thập phân)
-            // Giới hạn số ban đầu tối đa 6 chữ số
-            let step = Math.round(1 / ratio); // Bội số cần chia hết (10, 100, hoặc 1000)
+            // Đổi từ đơn vị NHỎ -> LỚN
+            let step = Math.round(1 / ratio); // 10, 100, hoặc 1000
             let maxMultiplier = Math.floor(999999 / step);
             let multiplier = getRandomInt(1, maxMultiplier);
             
@@ -159,7 +171,7 @@
         };
 
         // Hiển thị câu hỏi
-        document.getElementById('question').innerText = `${val} ${fromUnit} = ... ${toUnit}`;
+        document.getElementById('question').innerText = `${formatNumber(val)} ${fromUnit} = ... ${toUnit}`;
         document.getElementById('target-unit').innerText = toUnit;
         document.getElementById('user-answer').value = '';
         document.getElementById('user-answer').focus();
@@ -168,7 +180,9 @@
     function checkAnswer(event) {
         event.preventDefault();
         let inputEl = document.getElementById('user-answer');
-        let userAns = parseInt(inputEl.value, 10);
+        
+        let rawInput = inputEl.value.replace(/\s+/g, '');
+        let userAns = parseInt(rawInput, 10);
         let feedbackEl = document.getElementById('feedback');
 
         if (isNaN(userAns)) return;
@@ -182,14 +196,14 @@
         } else {
             countWrong++;
             document.getElementById('score-wrong').innerText = countWrong;
-            feedbackEl.innerText = `Chưa đúng! (${currentQuestion.val} ${currentQuestion.fromUnit} = ${currentQuestion.ans} ${currentQuestion.toUnit})`;
+            feedbackEl.innerText = `Chưa đúng! (${formatNumber(currentQuestion.val)} ${currentQuestion.fromUnit} = ${formatNumber(currentQuestion.ans)} ${currentQuestion.toUnit})`;
             feedbackEl.className = "feedback wrong";
             inputEl.value = '';
             inputEl.focus();
         }
     }
 
-    // Tạo câu hỏi đầu tiên
+    // tạo câu hỏi đầu tiên
     generateQuestion();
 </script>
 
