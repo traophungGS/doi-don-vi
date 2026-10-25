@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luyện Tập Đổi Đơn Vị Khối Lượng</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f4f6f9;
+        }
+        .card {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .correct { color: #2e7d32; }
+        .wrong { color: #c62828; }
+        .question-box {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 25px 0;
+            color: #1565c0;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        input[type="number"] {
+            font-size: 20px;
+            padding: 8px 12px;
+            width: 160px;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+            outline: none;
+        }
+        input[type="number"]:focus {
+            border-color: #1565c0;
+        }
+        button {
+            font-size: 18px;
+            padding: 10px 20px;
+            background-color: #1565c0;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0d47a1;
+        }
+        .feedback {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Luyện Tập Đổi Đơn Vị</h2>
+    
+    <div class="stats">
+        <span class="correct">Đúng: <span id="score-correct">0</span></span>
+        <span class="wrong">Sai: <span id="score-wrong">0</span></span>
+    </div>
+
+    <div class="question-box" id="question">Đang tải...</div>
+
+    <form id="quiz-form" onsubmit="checkAnswer(event)">
+        <div class="input-group">
+            <input type="number" id="user-answer" placeholder="Nhập số" required autocomplete="off" autofocus>
+            <span id="target-unit" style="font-size: 20px; font-weight: bold;"></span>
+        </div>
+        <button type="submit">Kiểm tra</button>
+    </form>
+
+    <div class="feedback" id="feedback"></div>
+</div>
+
+<script>
+    const UNITS = ['tấn', 'tạ', 'yến', 'kg'];
+    const VALUES = { 'tấn': 1000, 'tạ': 100, 'yến': 10, 'kg': 1 };
+
+    let currentQuestion = {};
+    let countCorrect = 0;
+    let countWrong = 0;
+
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateQuestion() {
+        // Chọn ngẫu nhiên đơn vị nguồn và đơn vị đích khác nhau
+        let fromIdx = getRandomInt(0, 3);
+        let toIdx = getRandomInt(0, 3);
+        while (fromIdx === toIdx) {
+            toIdx = getRandomInt(0, 3);
+        }
+
+        let fromUnit = UNITS[fromIdx];
+        let toUnit = UNITS[toIdx];
+
+        let ratio = VALUES[fromUnit] / VALUES[toUnit];
+        let val, ans;
+
+        if (ratio >= 1) {
+            // Đổi từ đơn vị lớn sang nhỏ -> Kết quả chắc chắn là số nguyên
+            // Giới hạn giá trị ban đầu sao cho kết quả sau khi nhân không quá 6 chữ số (999,999)
+            let maxVal = Math.floor(999999 / ratio);
+            val = getRandomInt(1, maxVal);
+            ans = val * ratio;
+        } else {
+            // Đổi từ đơn vị nhỏ sang lớn -> Cần đảm bảo chia hết (không ra số thập phân)
+            // Giới hạn số ban đầu tối đa 6 chữ số
+            let step = Math.round(1 / ratio); // Bội số cần chia hết (10, 100, hoặc 1000)
+            let maxMultiplier = Math.floor(999999 / step);
+            let multiplier = getRandomInt(1, maxMultiplier);
+            
+            val = multiplier * step;
+            ans = val / step;
+        }
+
+        currentQuestion = {
+            val: val,
+            fromUnit: fromUnit,
+            toUnit: toUnit,
+            ans: ans
+        };
+
+        // Hiển thị câu hỏi
+        document.getElementById('question').innerText = `${val} ${fromUnit} = ... ${toUnit}`;
+        document.getElementById('target-unit').innerText = toUnit;
+        document.getElementById('user-answer').value = '';
+        document.getElementById('user-answer').focus();
+    }
+
+    function checkAnswer(event) {
+        event.preventDefault();
+        let inputEl = document.getElementById('user-answer');
+        let userAns = parseInt(inputEl.value, 10);
+        let feedbackEl = document.getElementById('feedback');
+
+        if (isNaN(userAns)) return;
+
+        if (userAns === currentQuestion.ans) {
+            countCorrect++;
+            document.getElementById('score-correct').innerText = countCorrect;
+            feedbackEl.innerText = "Chính xác!";
+            feedbackEl.className = "feedback correct";
+            generateQuestion();
+        } else {
+            countWrong++;
+            document.getElementById('score-wrong').innerText = countWrong;
+            feedbackEl.innerText = `Chưa đúng! (${currentQuestion.val} ${currentQuestion.fromUnit} = ${currentQuestion.ans} ${currentQuestion.toUnit})`;
+            feedbackEl.className = "feedback wrong";
+            inputEl.value = '';
+            inputEl.focus();
+        }
+    }
+
+    // Tạo câu hỏi đầu tiên
+    generateQuestion();
+</script>
+
+</body>
+</html>
